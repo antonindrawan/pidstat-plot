@@ -2,6 +2,7 @@
 # -*- coding: utf-8 -*
 
 import argparse
+import matplotlib
 import matplotlib.pyplot as plt
 import os
 import re
@@ -38,23 +39,59 @@ class PidstatFileParser:
         data_content.append(line.split())
 
     cpu = CpuPlot(headers, data_content)
+    cpu.plot()
 
   def find_header(self):
       split_header_and_content
 
 class CpuPlot:
+  timestamp_list = []
+  cpu_usage_list = []
+  samples = []
   def __init__(self, headers, data_content):
-    print "helo"
-    print headers
     idx_time = 0
 
     try:
+      i = 0
       idx_cpu = headers.index("%CPU")
       for line in data_content:
           print line[idx_time] + " - " + line[idx_cpu]
+          self.timestamp_list.append(line[idx_time])
+          self.cpu_usage_list.append(line[idx_cpu])
+          self.samples.append(i)
+          i = i + 1
+
+      # Remove the last element from the list, because it contains the average value.
+      self.samples = self.samples[:-1]
+      self.timestamp_list = self.timestamp_list[:-1]
+      self.cpu_usage_list = self.cpu_usage_list[:-1]
 
     except ValueError:
       print("Unable to plot CPU because there is no %CPU in the header")
+
+  def plot(self):
+    # Set the plot title
+    plot_figure = plt.figure(1)
+    plot_figure.canvas.set_window_title("CPU usage")
+
+    # Assign data set
+    plot = plt.plot(self.samples, self.cpu_usage_list)
+    # We want the timestamp list instead of the sample number, so set the timestamp list to the label.
+    plt.xticks(self.samples, self.timestamp_list)
+    plt.xticks(rotation=90)
+
+    # Set the y limit from 0
+    plt.ylim(bottom = 0, top = 400)
+
+    plt.xlabel("timestamp")
+    plt.ylabel("%cpu")
+    plt.grid(True)
+
+    manager = plt.get_current_fig_manager()
+    manager.resize(*manager.window.maxsize())
+    plot_figure.set_size_inches((19.2, 10.8), forward=True)
+    plot_figure.savefig(args.pidstat_output_file.name + ".png", dpi=300)
+    plt.show()
 
 
 def parse_args():

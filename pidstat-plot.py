@@ -2,6 +2,7 @@
 # -*- coding: utf-8 -*
 
 import argparse
+import math
 import matplotlib
 import matplotlib.pyplot as plt
 import os
@@ -96,20 +97,24 @@ class ComponentCpuObject:
     # Create plots with pre-defined labels.
     fig, ax = plt.subplots()
 
+    max_cpu_usage = 0
     sample_list = []
     timestamp_list = []
     for key, value in data.items():
+      max_cpu_current_process = max(value.cpu_usage_list)
+      max_cpu_usage = max_cpu_current_process if max_cpu_usage < max_cpu_current_process else max_cpu_usage
+
       count = len(value.cpu_usage_list)
 
       sample_list = []
       for i in range(count):
         sample_list.append(i)
 
-      timestamp_list = data[key].timestamp_list
+      timestamp_list = value.timestamp_list
 
-      ax.set_xticklabels(sample_list, data[key].timestamp_list)
+      ax.set_xticklabels(sample_list, value.timestamp_list)
       ax.tick_params(axis='x', which='major', pad=15)
-      ax.plot(sample_list, data[key].cpu_usage_list, 'o-', label=key)
+      ax.plot(sample_list, value.cpu_usage_list, 'o-', label=key)
 
     legend = ax.legend(loc='upper center', shadow=True, fontsize='x-large')
 
@@ -120,8 +125,9 @@ class ComponentCpuObject:
     plt.xticks(reduced_sample_list, reduced_timestamp_list)
     plt.xticks(rotation=90)
 
-    # Set the y limit from 0
-    plt.ylim(bottom = 0)
+    # ylimit => round up the max cpu usage to the nearest 100.
+    top_ylim = int(math.ceil(float(max_cpu_usage) / 100)) * 100
+    plt.ylim(bottom = 0, top = top_ylim)
 
     manager = plt.get_current_fig_manager()
     manager.resize(*manager.window.maxsize())
